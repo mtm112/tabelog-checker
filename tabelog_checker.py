@@ -134,15 +134,39 @@ def load_urls(force_refresh=False):
                     try:
                         worksheet = spreadsheet.worksheet(worksheet_name)
                         print(f"✅ ワークシート '{worksheet_name}' を開きました")
+                        
+                        # ワークシートが空でないか確認
+                        test_values = worksheet.get_all_values()
+                        if not test_values or len(test_values) == 0 or (len(test_values) == 1 and len(test_values[0]) == 0):
+                            print(f"⚠️  ワークシート '{worksheet_name}' が空です。他のワークシートを確認します。")
+                            worksheet = None
                     except Exception as e:
                         print(f"⚠️  ワークシート '{worksheet_name}' が見つかりません: {e}")
-                        # 最初のワークシートを使用
-                        if all_worksheets:
+                    
+                    # 指定されたワークシートが空または見つからない場合、他のワークシートを試す
+                    if not worksheet and all_worksheets:
+                        print(f"ℹ️  データがあるワークシートを検索中...")
+                        for ws in all_worksheets:
+                            try:
+                                test_values = ws.get_all_values()
+                                if test_values and len(test_values) > 0:
+                                    # ヘッダー行が空でないか確認
+                                    if len(test_values[0]) > 0 and any(cell.strip() for cell in test_values[0]):
+                                        worksheet = ws
+                                        print(f"✅ データがあるワークシート '{ws.title}' を見つけました（{len(test_values)}行）")
+                                        break
+                            except Exception as e:
+                                print(f"⚠️  ワークシート '{ws.title}' の確認中にエラー: {e}")
+                                continue
+                        
+                        # それでも見つからない場合、最初のワークシートを使用
+                        if not worksheet and all_worksheets:
                             worksheet = all_worksheets[0]
                             print(f"ℹ️  最初のワークシート '{worksheet.title}' を使用します")
-                        else:
-                            print("❌ ワークシートが見つかりません")
-                            return []
+                    
+                    if not worksheet:
+                        print("❌ ワークシートが見つかりません")
+                        return []
                     
                     # データを取得（ヘッダー行を含む）
                     # 最新のデータを確実に取得するため、毎回スプレッドシートから直接読み込む
