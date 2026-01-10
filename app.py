@@ -58,15 +58,47 @@ with tab1:
                         worksheet_name = config.get('worksheet_name', 'Sheet1')
                         if spreadsheet_id:
                             spreadsheet = sheets_client.open_by_key(spreadsheet_id)
-                            worksheet = spreadsheet.worksheet(worksheet_name)
+                            
+                            # 利用可能なワークシート一覧を表示
+                            all_worksheets = spreadsheet.worksheets()
+                            st.write("**利用可能なワークシート:**")
+                            for ws in all_worksheets:
+                                st.write(f"- {ws.title}")
+                            
+                            # 指定されたワークシートを開く
+                            try:
+                                worksheet = spreadsheet.worksheet(worksheet_name)
+                                st.success(f"✅ ワークシート '{worksheet_name}' を開きました")
+                            except Exception as e:
+                                st.warning(f"⚠️  ワークシート '{worksheet_name}' が見つかりません。最初のワークシートを使用します。")
+                                if all_worksheets:
+                                    worksheet = all_worksheets[0]
+                                    st.info(f"使用中のワークシート: '{worksheet.title}'")
+                                else:
+                                    st.error("❌ ワークシートが見つかりません")
+                                    return
+                            
                             all_values = worksheet.get_all_values()
                             st.success(f"✅ 接続成功！読み込んだ行数: {len(all_values)}行")
+                            
                             if all_values:
                                 st.write("**ヘッダー行:**")
                                 st.write(all_values[0])
+                                st.write(f"**ヘッダー行の列数:** {len(all_values[0])}")
+                                
                                 if len(all_values) > 1:
                                     st.write("**最初のデータ行:**")
                                     st.write(all_values[1])
+                                    st.write(f"**最初のデータ行の列数:** {len(all_values[1])}")
+                                
+                                # 4列目の内容を確認
+                                if len(all_values) > 1 and len(all_values[1]) > 3:
+                                    st.write("**4列目（D列）の内容:**")
+                                    for idx, row in enumerate(all_values[1:6], start=2):  # 最初の5行をチェック
+                                        if len(row) > 3:
+                                            st.write(f"行{idx}: {row[3]}")
+                            else:
+                                st.warning("⚠️  データが空です")
                         else:
                             st.error("❌ spreadsheet_idが設定されていません")
                     else:

@@ -120,7 +120,29 @@ def load_urls(force_refresh=False):
                 else:
                     print(f"ℹ️  load_urls: スプレッドシートから読み込み開始 (ID: {spreadsheet_id[:20]}..., ワークシート: {worksheet_name})")
                     spreadsheet = client.open_by_key(spreadsheet_id)
-                    worksheet = spreadsheet.worksheet(worksheet_name)
+                    
+                    # 利用可能なワークシート一覧を取得（デバッグ用）
+                    all_worksheets = []
+                    try:
+                        all_worksheets = spreadsheet.worksheets()
+                        print(f"ℹ️  利用可能なワークシート: {[ws.title for ws in all_worksheets]}")
+                    except Exception as e:
+                        print(f"⚠️  ワークシート一覧の取得エラー: {e}")
+                    
+                    # ワークシートを取得（存在しない場合は最初のシートを使用）
+                    worksheet = None
+                    try:
+                        worksheet = spreadsheet.worksheet(worksheet_name)
+                        print(f"✅ ワークシート '{worksheet_name}' を開きました")
+                    except Exception as e:
+                        print(f"⚠️  ワークシート '{worksheet_name}' が見つかりません: {e}")
+                        # 最初のワークシートを使用
+                        if all_worksheets:
+                            worksheet = all_worksheets[0]
+                            print(f"ℹ️  最初のワークシート '{worksheet.title}' を使用します")
+                        else:
+                            print("❌ ワークシートが見つかりません")
+                            return []
                     
                     # データを取得（ヘッダー行を含む）
                     # 最新のデータを確実に取得するため、毎回スプレッドシートから直接読み込む
