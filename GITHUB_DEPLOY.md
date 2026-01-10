@@ -8,7 +8,7 @@
 
 個人利用のみの場合、**プライベートリポジトリ**を作成することを強く推奨します。
 
-1. GitHubでリポジトリを作成する際、「Private」を選択
+1. GitHubでリポジトリを作成する際、「Private」を選択git add .
 2. これにより、コードが一般公開されません
 
 ### 機密情報について
@@ -49,13 +49,32 @@ git commit -m "Initial commit: 食べログチェッカーアプリ"
 4. **「Private」を選択**（重要！）
 5. 「Create repository」をクリック
 
-### 5. リモートリポジトリを追加してプッシュ
+### 5. Personal Access Tokenを作成
+
+デバイス認証画面で進めない場合は、Personal Access Tokenを使用してください。
+
+1. [GitHub Settings → Developer settings → Personal access tokens → Tokens (classic)](https://github.com/settings/tokens)
+2. 「Generate new token (classic)」をクリック
+3. 以下の設定：
+   - **Note**: `tabelog-checker`
+   - **Expiration**: お好みの期間
+   - **Select scopes**: `repo`にチェック
+4. 「Generate token」をクリック
+5. **表示されたトークンをコピー**（後で表示されません）
+
+詳細は`GITHUB_AUTH_GUIDE.md`を参照してください。
+
+### 6. リモートリポジトリを追加してプッシュ
 
 ```bash
 git remote add origin https://github.com/あなたのユーザー名/tabelog-checker.git
 git branch -M main
 git push -u origin main
 ```
+
+**認証情報の入力:**
+- **Username**: あなたのGitHubユーザー名
+- **Password**: 作成したPersonal Access Token（パスワードの代わりに入力）
 
 ## Streamlit Cloudでの設定
 
