@@ -90,15 +90,19 @@ def get_google_sheets_client():
         traceback.print_exc()
         return None
 
-def load_urls():
+def load_urls(force_refresh=False):
     """
     保存されたURLリストを読み込む
     Googleスプレッドシートが設定されている場合はそちらから、なければローカルJSONファイルから読み込む
+    
+    Args:
+        force_refresh: Trueの場合、強制的にスプレッドシートから再読み込み（デフォルト: False）
     
     Returns:
         list: URLのリスト
     """
     # Googleスプレッドシートから読み込みを試みる
+    # force_refreshがTrueの場合、クライアントを再取得して最新データを取得
     client = get_google_sheets_client()
     if client:
         try:
@@ -111,7 +115,12 @@ def load_urls():
                 worksheet = spreadsheet.worksheet(worksheet_name)
                 
                 # データを取得（ヘッダー行を含む）
+                # 最新のデータを確実に取得するため、毎回スプレッドシートから直接読み込む
                 all_values = worksheet.get_all_values()
+                
+                # デバッグ用：読み込み時刻を記録
+                import datetime
+                print(f"📅 スプレッドシート読み込み時刻: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
                 
                 if not all_values:
                     print("⚠️  Googleスプレッドシートが空です")

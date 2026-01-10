@@ -32,11 +32,23 @@ with tab1:
     sheets_client = get_google_sheets_client()
     
     if sheets_config and sheets_client:
-        st.success("✅ Googleスプレッドシートから読み込みます")
-        spreadsheet_id = sheets_config.get('spreadsheet_id', 'N/A')
-        worksheet_name = sheets_config.get('worksheet_name', 'Sheet1')
-        st.info(f"📊 スプレッドシートID: {spreadsheet_id[:20]}... | ワークシート: {worksheet_name}")
-        st.info("💡 URLは4列目（D列）から読み込みます")
+        col_status, col_reload = st.columns([3, 1])
+        with col_status:
+            st.success("✅ Googleスプレッドシートから読み込みます")
+            spreadsheet_id = sheets_config.get('spreadsheet_id', 'N/A')
+            worksheet_name = sheets_config.get('worksheet_name', 'Sheet1')
+            st.info(f"📊 スプレッドシートID: {spreadsheet_id[:20]}... | ワークシート: {worksheet_name}")
+            st.info("💡 URLは4列目（D列）から読み込みます")
+        with col_reload:
+            if st.button("🔄 スプレッドシートから再読み込み", type="secondary", use_container_width=True):
+                # セッションステートをクリアして強制的に再読み込み
+                if 'last_reload_time' in st.session_state:
+                    del st.session_state['last_reload_time']
+                if 'shop_names_cache' in st.session_state:
+                    # キャッシュは保持（店舗名の再取得は不要なため）
+                    pass
+                st.success("再読み込みしました！")
+                st.rerun()
     else:
         if not sheets_config:
             st.warning("⚠️ Googleスプレッドシートが設定されていません。")
@@ -69,8 +81,13 @@ with tab1:
             st.error("❌ Googleスプレッドシートへの接続に失敗しました。認証情報を確認してください。")
         st.info("現在はローカルファイルから読み込みます。")
     
-    # URLリストを読み込み
+    # URLリストを読み込み（毎回最新のデータを取得）
     urls = load_urls()
+    
+    # 読み込み時刻を表示（デバッグ用）
+    if sheets_config and sheets_client:
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        st.caption(f"📅 最終読み込み時刻: {current_time} | 読み込んだURL数: {len(urls)}件")
     
     # URL追加セクション
     st.markdown("---")
@@ -218,16 +235,21 @@ with tab1:
 with tab2:
     st.markdown("### 🔍 チェック実行")
     
-    # URLリストを読み込み
-    urls = load_urls()
-    
     # Googleスプレッドシートの設定確認
     from tabelog_checker import get_google_sheets_config, get_google_sheets_client
     sheets_config = get_google_sheets_config()
     sheets_client = get_google_sheets_client()
     
     if sheets_config and sheets_client:
-        st.info("📊 GoogleスプレッドシートからURLを読み込みました（4列目からURLを取得）")
+        col_info, col_reload = st.columns([3, 1])
+        with col_info:
+            st.info("📊 GoogleスプレッドシートからURLを読み込みます（4列目からURLを取得）")
+        with col_reload:
+            if st.button("🔄 再読み込み", type="secondary", use_container_width=True):
+                st.rerun()
+    
+    # URLリストを読み込み（毎回最新のデータを取得）
+    urls = load_urls()
     
     if not urls:
         st.warning("⚠️ 登録されているURLがありません。")
