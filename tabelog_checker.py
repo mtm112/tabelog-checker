@@ -107,75 +107,92 @@ def load_urls(force_refresh=False):
     if client:
         try:
             config = get_google_sheets_config()
-            spreadsheet_id = config.get('spreadsheet_id')
-            worksheet_name = config.get('worksheet_name', 'Sheet1')
-            
-            if spreadsheet_id:
-                spreadsheet = client.open_by_key(spreadsheet_id)
-                worksheet = spreadsheet.worksheet(worksheet_name)
+            if not config:
+                print("⚠️  load_urls: 設定が取得できませんでした")
+                # フォールバックに進む
+            else:
+                spreadsheet_id = config.get('spreadsheet_id')
+                worksheet_name = config.get('worksheet_name', 'Sheet1')
                 
-                # データを取得（ヘッダー行を含む）
-                # 最新のデータを確実に取得するため、毎回スプレッドシートから直接読み込む
-                all_values = worksheet.get_all_values()
-                
-                # デバッグ用：読み込み時刻を記録
-                import datetime
-                print(f"📅 スプレッドシート読み込み時刻: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-                
-                if not all_values:
-                    print("⚠️  Googleスプレッドシートが空です")
-                    return []
-                
-                # ヘッダー行を取得
-                headers = [h.strip() for h in all_values[0]]
-                
-                # URL列のインデックスを探す（大文字小文字を区別しない）
-                url_col_idx = None
-                for idx, header in enumerate(headers):
-                    header_upper = header.upper()
-                    if header_upper == 'URL' or header_upper == 'URLS' or 'URL' in header_upper:
-                        url_col_idx = idx
-                        break
-                
-                if url_col_idx is None:
-                    # URL列が見つからない場合、4列目（インデックス3）を試す
-                    # 構造: 番号、店舗名、その他、URL の場合
-                    if len(headers) >= 4:
-                        url_col_idx = 3  # 4列目（0-indexedなので3）
-                        print(f"ℹ️  URL列が見つからないため、4列目（インデックス{url_col_idx}）を使用します")
-                    else:
-                        # それでも見つからない場合、tabelog.comを含む列を探す
-                        for row_idx, row in enumerate(all_values[1:6]):  # 最初の5行をチェック
-                            for col_idx, cell in enumerate(row):
-                                if 'tabelog.com' in cell:
-                                    url_col_idx = col_idx
-                                    print(f"ℹ️  データからURL列を検出: 列{col_idx + 1}")
-                                    break
-                            if url_col_idx is not None:
-                                break
-                
-                if url_col_idx is None:
-                    print("❌ GoogleスプレッドシートでURL列が見つかりません")
-                    print(f"   見つかった列: {headers}")
-                    return []
-                
-                # データ行からURLを抽出（ヘッダー行を除く）
-                urls = []
-                for row_idx, row in enumerate(all_values[1:], start=2):  # ヘッダー行をスキップ、行番号は2から
-                    if len(row) > url_col_idx:
-                        url = row[url_col_idx].strip()
-                        # 食べログのURLかチェック
-                        if url and 'tabelog.com' in url and url.startswith('http'):
-                            urls.append(url)
-                        elif url and url.startswith('http'):
-                            # tabelog.comが含まれていない場合も警告
-                            print(f"⚠️  行{row_idx}: tabelog.comが含まれていないURLをスキップ: {url[:50]}...")
-                
-                if urls:
-                    print(f"✅ Googleスプレッドシートから{len(urls)}件のURLを読み込みました（列: {headers[url_col_idx]}）")
+                if not spreadsheet_id:
+                    print("⚠️  load_urls: spreadsheet_idが設定されていません")
+                    # フォールバックに進む
                 else:
-                    print("⚠️  GoogleスプレッドシートからURLが見つかりませんでした")
-                return urls
+                    print(f"ℹ️  load_urls: スプレッドシートから読み込み開始 (ID: {spreadsheet_id[:20]}..., ワークシート: {worksheet_name})")
+                    spreadsheet = client.open_by_key(spreadsheet_id)
+                    worksheet = spreadsheet.worksheet(worksheet_name)
+                    
+                    # データを取得（ヘッダー行を含む）
+                    # 最新のデータを確実に取得するため、毎回スプレッドシートから直接読み込む
+                    all_values = worksheet.get_all_values()
+                    
+                    # デバッグ用：読み込み時刻を記録
+                    import datetime
+                    print(f"📅 スプレッドシート読み込み時刻: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                    print(f"ℹ️  読み込んだ行数: {len(all_values)}行")
+                    
+                    if not all_values:
+                        print("⚠️  Googleスプレッドシートが空です")
+                        return []
+                    
+                    # ヘッダー行を取得
+                    headers = [h.strip() for h in all_values[0]]
+                    print(f"ℹ️  ヘッダー行: {headers}")
+                    
+                    # URL列のインデックスを探す（大文字小文字を区別しない）
+                    url_col_idx = None
+                    for idx, header in enumerate(headers):
+                        header_upper = header.upper()
+                        if header_upper == 'URL' or header_upper == 'URLS' or 'URL' in header_upper:
+                            url_col_idx = idx
+                            print(f"✅ URL列を検出: 列{idx + 1} ({header})")
+                            break
+                    
+                    if url_col_idx is None:
+                        # URL列が見つからない場合、4列目（インデックス3）を試す
+                        # 構造: 番号、店舗名、その他、URL の場合
+                        if len(headers) >= 4:
+                            url_col_idx = 3  # 4列目（0-indexedなので3）
+                            print(f"ℹ️  URL列が見つからないため、4列目（インデックス{url_col_idx}）を使用します")
+                        else:
+                            # それでも見つからない場合、tabelog.comを含む列を探す
+                            print(f"ℹ️  データからURL列を検索中...")
+                            for row_idx, row in enumerate(all_values[1:6]):  # 最初の5行をチェック
+                                for col_idx, cell in enumerate(row):
+                                    if 'tabelog.com' in cell:
+                                        url_col_idx = col_idx
+                                        print(f"✅ データからURL列を検出: 列{col_idx + 1} (行{row_idx + 2})")
+                                        break
+                                if url_col_idx is not None:
+                                    break
+                    
+                    if url_col_idx is None:
+                        print("❌ GoogleスプレッドシートでURL列が見つかりません")
+                        print(f"   見つかった列: {headers}")
+                        print(f"   列数: {len(headers)}")
+                        return []
+                    
+                    # データ行からURLを抽出（ヘッダー行を除く）
+                    urls = []
+                    for row_idx, row in enumerate(all_values[1:], start=2):  # ヘッダー行をスキップ、行番号は2から
+                        if len(row) > url_col_idx:
+                            url = row[url_col_idx].strip()
+                            # 食べログのURLかチェック
+                            if url and 'tabelog.com' in url and url.startswith('http'):
+                                urls.append(url)
+                                print(f"  ✅ 行{row_idx}: URLを追加: {url[:50]}...")
+                            elif url and url.startswith('http'):
+                                # tabelog.comが含まれていない場合も警告
+                                print(f"⚠️  行{row_idx}: tabelog.comが含まれていないURLをスキップ: {url[:50]}...")
+                            elif url:
+                                print(f"ℹ️  行{row_idx}: 空でないセルがありますが、URLではありません: {url[:30]}...")
+                    
+                    if urls:
+                        print(f"✅ Googleスプレッドシートから{len(urls)}件のURLを読み込みました（列: {headers[url_col_idx] if url_col_idx < len(headers) else 'N/A'}）")
+                    else:
+                        print("⚠️  GoogleスプレッドシートからURLが見つかりませんでした")
+                        print(f"   データ行数: {len(all_values) - 1}行（ヘッダー除く）")
+                    return urls
         except Exception as e:
             print(f"❌ Googleスプレッドシートからの読み込みエラー: {e}")
             import traceback

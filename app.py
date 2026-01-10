@@ -31,6 +31,53 @@ with tab1:
     sheets_config = get_google_sheets_config()
     sheets_client = get_google_sheets_client()
     
+    # デバッグ情報を表示
+    with st.expander("🔍 デバッグ情報", expanded=False):
+        st.write("**設定状態:**")
+        st.write(f"- sheets_config存在: {sheets_config is not None}")
+        st.write(f"- sheets_client存在: {sheets_client is not None}")
+        
+        if sheets_config:
+            st.write("**設定内容:**")
+            st.write(f"- spreadsheet_id: {sheets_config.get('spreadsheet_id', 'N/A')}")
+            st.write(f"- worksheet_name: {sheets_config.get('worksheet_name', 'N/A')}")
+            st.write(f"- credentials存在: {'credentials' in sheets_config}")
+            if 'credentials' in sheets_config:
+                creds = sheets_config.get('credentials', {})
+                st.write(f"  - type: {creds.get('type', 'N/A')}")
+                st.write(f"  - client_email: {creds.get('client_email', 'N/A')[:30]}...")
+                st.write(f"  - project_id: {creds.get('project_id', 'N/A')}")
+        
+        # テスト読み込みボタン
+        if st.button("🧪 スプレッドシート接続テスト", type="secondary"):
+            if sheets_client:
+                try:
+                    config = get_google_sheets_config()
+                    if config:
+                        spreadsheet_id = config.get('spreadsheet_id')
+                        worksheet_name = config.get('worksheet_name', 'Sheet1')
+                        if spreadsheet_id:
+                            spreadsheet = sheets_client.open_by_key(spreadsheet_id)
+                            worksheet = spreadsheet.worksheet(worksheet_name)
+                            all_values = worksheet.get_all_values()
+                            st.success(f"✅ 接続成功！読み込んだ行数: {len(all_values)}行")
+                            if all_values:
+                                st.write("**ヘッダー行:**")
+                                st.write(all_values[0])
+                                if len(all_values) > 1:
+                                    st.write("**最初のデータ行:**")
+                                    st.write(all_values[1])
+                        else:
+                            st.error("❌ spreadsheet_idが設定されていません")
+                    else:
+                        st.error("❌ 設定が取得できませんでした")
+                except Exception as e:
+                    st.error(f"❌ エラー: {str(e)}")
+                    import traceback
+                    st.code(traceback.format_exc())
+            else:
+                st.error("❌ クライアントが取得できませんでした")
+    
     if sheets_config and sheets_client:
         col_status, col_reload = st.columns([3, 1])
         with col_status:
