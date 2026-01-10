@@ -35,10 +35,22 @@ def get_google_sheets_config():
     """
     try:
         import streamlit as st
-        if hasattr(st, 'secrets') and 'google_sheets' in st.secrets:
-            return st.secrets['google_sheets']
-    except:
-        pass
+        if hasattr(st, 'secrets'):
+            if 'google_sheets' in st.secrets:
+                config = st.secrets['google_sheets']
+                # 必須項目のチェック
+                if 'spreadsheet_id' in config and config['spreadsheet_id']:
+                    return config
+                else:
+                    print("⚠️  Googleスプレッドシート設定にspreadsheet_idがありません")
+            else:
+                print("⚠️  Streamlit Secretsに'google_sheets'セクションがありません")
+        else:
+            print("⚠️  Streamlit Secretsが利用できません")
+    except Exception as e:
+        print(f"⚠️  Googleスプレッドシート設定の取得エラー: {e}")
+        import traceback
+        traceback.print_exc()
     return None
 
 def get_google_sheets_client():
@@ -49,6 +61,7 @@ def get_google_sheets_client():
         gspread.Client: クライアントオブジェクト（取得できない場合はNone）
     """
     if not GSPREAD_AVAILABLE:
+        print("⚠️  gspreadライブラリがインストールされていません")
         return None
     
     config = get_google_sheets_config()
@@ -59,6 +72,7 @@ def get_google_sheets_client():
         # 認証情報を取得
         creds_dict = config.get('credentials')
         if not creds_dict:
+            print("⚠️  Googleスプレッドシート設定に'credentials'がありません")
             return None
         
         # 認証情報からクライアントを作成
@@ -68,9 +82,12 @@ def get_google_sheets_client():
         ]
         creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
         client = gspread.authorize(creds)
+        print("✅ Googleスプレッドシートクライアントの認証に成功しました")
         return client
     except Exception as e:
-        print(f"Googleスプレッドシート認証エラー: {e}")
+        print(f"❌ Googleスプレッドシート認証エラー: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 def load_urls():
@@ -112,11 +129,11 @@ def load_urls():
                         break
                 
                 if url_col_idx is None:
-                    # URL列が見つからない場合、3列目（インデックス2）を試す
-                    # 構造: 番号、店舗名、URL の場合
-                    if len(headers) >= 3:
-                        url_col_idx = 2  # 3列目（0-indexedなので2）
-                        print(f"ℹ️  URL列が見つからないため、3列目（インデックス{url_col_idx}）を使用します")
+                    # URL列が見つからない場合、4列目（インデックス3）を試す
+                    # 構造: 番号、店舗名、その他、URL の場合
+                    if len(headers) >= 4:
+                        url_col_idx = 3  # 4列目（0-indexedなので3）
+                        print(f"ℹ️  URL列が見つからないため、4列目（インデックス{url_col_idx}）を使用します")
                     else:
                         # それでも見つからない場合、tabelog.comを含む列を探す
                         for row_idx, row in enumerate(all_values[1:6]):  # 最初の5行をチェック

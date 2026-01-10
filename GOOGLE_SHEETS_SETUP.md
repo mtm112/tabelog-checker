@@ -52,21 +52,23 @@
 4. 1行目にヘッダーを設定：
    - A1: `番号`（または任意の列名）
    - B1: `店舗名`
-   - C1: `URL`（重要：この列名でURLを読み込みます）
+   - C1: 任意の列（使用しない列でも可）
+   - D1: `URL`（重要：4列目（D列）にURLを配置してください）
 5. 2行目以降にデータを入力：
    - 例：
      ```
-     番号 | 店舗名 | URL
-     1    | 店舗A | https://tabelog.com/tokyo/A1303/A130301/13269043/
-     2    | 店舗B | https://tabelog.com/tokyo/A1304/A130401/13314297/
+     番号 | 店舗名 | その他 | URL
+     1    | 店舗A | メモ   | https://tabelog.com/tokyo/A1303/A130301/13269043/
+     2    | 店舗B | メモ   | https://tabelog.com/tokyo/A1304/A130401/13314297/
      ```
 6. スプレッドシートのURLからスプレッドシートIDを取得：
    - URL例: `https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit`
    - スプレッドシートID: `1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms`（`/d/`と`/edit`の間の部分）
 
 **重要**: 
-- 「URL」列が必須です（列名は「URL」または「URLs」）
-- URL列が見つからない場合、3列目（C列）を自動的に使用します
+- 「URL」列は4列目（D列）に配置してください
+- 列名は「URL」または「URLs」を推奨しますが、自動検出も可能です
+- URL列が見つからない場合、4列目（D列、インデックス3）を自動的に使用します
 - 食べログのURL（`tabelog.com`を含む）のみが読み込まれます
 
 ## ステップ7: サービスアカウントにスプレッドシートへのアクセス権限を付与

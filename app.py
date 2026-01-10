@@ -27,15 +27,47 @@ with tab1:
     st.markdown("### 📝 登録URL管理")
     
     # Googleスプレッドシートの設定確認
-    from tabelog_checker import get_google_sheets_config
+    from tabelog_checker import get_google_sheets_config, get_google_sheets_client
     sheets_config = get_google_sheets_config()
+    sheets_client = get_google_sheets_client()
     
-    if sheets_config:
+    if sheets_config and sheets_client:
         st.success("✅ Googleスプレッドシートから読み込みます")
-        st.info(f"📊 スプレッドシートID: {sheets_config.get('spreadsheet_id', 'N/A')[:20]}...")
+        spreadsheet_id = sheets_config.get('spreadsheet_id', 'N/A')
+        worksheet_name = sheets_config.get('worksheet_name', 'Sheet1')
+        st.info(f"📊 スプレッドシートID: {spreadsheet_id[:20]}... | ワークシート: {worksheet_name}")
+        st.info("💡 URLは4列目（D列）から読み込みます")
     else:
-        st.warning("⚠️ Googleスプレッドシートが設定されていません。ローカルファイルから読み込みます。")
-        st.info("Streamlit Cloudで使用する場合は、SecretsにGoogleスプレッドシートの設定を追加してください。")
+        if not sheets_config:
+            st.warning("⚠️ Googleスプレッドシートが設定されていません。")
+            with st.expander("🔧 設定方法"):
+                st.markdown("""
+                Streamlit Cloudで使用する場合は、以下の手順で設定してください：
+                
+                1. Streamlit Cloudのアプリ設定画面で「Secrets」を開く
+                2. `GOOGLE_SHEETS_SETUP.md`を参照して、以下の形式で設定を追加：
+                
+                ```toml
+                [google_sheets]
+                spreadsheet_id = "あなたのスプレッドシートID"
+                worksheet_name = "Sheet1"
+                
+                [google_sheets.credentials]
+                type = "service_account"
+                project_id = "あなたのプロジェクトID"
+                private_key_id = "あなたのprivate_key_id"
+                private_key = "-----BEGIN PRIVATE KEY-----\\nあなたのprivate_key\\n-----END PRIVATE KEY-----\\n"
+                client_email = "あなたのサービスアカウントのメールアドレス"
+                client_id = "あなたのclient_id"
+                auth_uri = "https://accounts.google.com/o/oauth2/auth"
+                token_uri = "https://oauth2.googleapis.com/token"
+                auth_provider_x509_cert_url = "https://www.googleapis.com/oauth2/v1/certs"
+                client_x509_cert_url = "あなたのclient_x509_cert_url"
+                ```
+                """)
+        elif not sheets_client:
+            st.error("❌ Googleスプレッドシートへの接続に失敗しました。認証情報を確認してください。")
+        st.info("現在はローカルファイルから読み込みます。")
     
     # URLリストを読み込み
     urls = load_urls()
@@ -190,11 +222,12 @@ with tab2:
     urls = load_urls()
     
     # Googleスプレッドシートの設定確認
-    from tabelog_checker import get_google_sheets_config
+    from tabelog_checker import get_google_sheets_config, get_google_sheets_client
     sheets_config = get_google_sheets_config()
+    sheets_client = get_google_sheets_client()
     
-    if sheets_config:
-        st.info("📊 GoogleスプレッドシートからURLを読み込みました")
+    if sheets_config and sheets_client:
+        st.info("📊 GoogleスプレッドシートからURLを読み込みました（4列目からURLを取得）")
     
     if not urls:
         st.warning("⚠️ 登録されているURLがありません。")
