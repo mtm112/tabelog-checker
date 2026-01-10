@@ -50,11 +50,24 @@
 2. 新しいスプレッドシートを作成
 3. スプレッドシート名を設定（例：`食べログチェッカー URL管理`）
 4. 1行目にヘッダーを設定：
-   - A1: `URL`
+   - A1: `番号`（または任意の列名）
    - B1: `店舗名`
-5. スプレッドシートのURLからスプレッドシートIDを取得：
+   - C1: `URL`（重要：この列名でURLを読み込みます）
+5. 2行目以降にデータを入力：
+   - 例：
+     ```
+     番号 | 店舗名 | URL
+     1    | 店舗A | https://tabelog.com/tokyo/A1303/A130301/13269043/
+     2    | 店舗B | https://tabelog.com/tokyo/A1304/A130401/13314297/
+     ```
+6. スプレッドシートのURLからスプレッドシートIDを取得：
    - URL例: `https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit`
    - スプレッドシートID: `1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms`（`/d/`と`/edit`の間の部分）
+
+**重要**: 
+- 「URL」列が必須です（列名は「URL」または「URLs」）
+- URL列が見つからない場合、3列目（C列）を自動的に使用します
+- 食べログのURL（`tabelog.com`を含む）のみが読み込まれます
 
 ## ステップ7: サービスアカウントにスプレッドシートへのアクセス権限を付与
 
@@ -73,7 +86,7 @@
 ```toml
 [google_sheets]
 spreadsheet_id = "あなたのスプレッドシートID"
-worksheet_name = "URLs"
+worksheet_name = "Sheet1"
 
 [google_sheets.credentials]
 type = "service_account"

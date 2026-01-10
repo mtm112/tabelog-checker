@@ -8,19 +8,19 @@
 
 ### ステップ1: Personal Access Tokenを作成
 
-1. [GitHub](https://github.com)にログイン
-2. 右上のプロフィールアイコンをクリック
-3. 「Settings」を選択
-4. 左メニューから「Developer settings」を選択
-5. 「Personal access tokens」→「Tokens (classic)」を選択
-6. 「Generate new token」→「Generate new token (classic)」をクリック
-7. 以下の設定を入力：
+詳細な手順は`CREATE_TOKEN_STEP_BY_STEP.md`を参照してください。
+
+**簡易手順:**
+1. [GitHub Settings → Developer settings → Personal access tokens → Tokens (classic)](https://github.com/settings/tokens)にアクセス
+2. 「Generate new token (classic)」をクリック
+3. 以下の設定を入力：
    - **Note**: `tabelog-checker`（任意の名前）
-   - **Expiration**: お好みの有効期限（推奨：90日またはNo expiration）
-   - **Select scopes**: 以下にチェック
-     - ✅ `repo`（すべてのチェックボックス）
-8. 「Generate token」をクリック
-9. **重要**: 表示されたトークンをコピーして安全に保管（後で表示されません）
+   - **Expiration**: `No expiration`（個人利用の場合）または`90 days`
+   - **Repository access**: 「All repositories」を選択（重要！）
+   - **Permissions**: 「Account」セクションで「+ Add permissions」をクリック
+     - **Repository permissions** → ✅ `repo`（すべてのチェックボックス）
+4. 「Generate token」をクリック
+5. **重要**: 表示されたトークンをコピーして安全に保管（後で表示されません）
 
 ### ステップ2: トークンを使用してGitHubに接続
 

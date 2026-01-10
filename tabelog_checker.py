@@ -87,22 +87,73 @@ def load_urls():
         try:
             config = get_google_sheets_config()
             spreadsheet_id = config.get('spreadsheet_id')
-            worksheet_name = config.get('worksheet_name', 'URLs')
+            worksheet_name = config.get('worksheet_name', 'Sheet1')
             
             if spreadsheet_id:
                 spreadsheet = client.open_by_key(spreadsheet_id)
                 worksheet = spreadsheet.worksheet(worksheet_name)
                 
-                # データを取得（1列目がURL、2列目が店舗名）
-                records = worksheet.get_all_records()
+                # データを取得（ヘッダー行を含む）
+                all_values = worksheet.get_all_values()
+                
+                if not all_values:
+                    print("⚠️  Googleスプレッドシートが空です")
+                    return []
+                
+                # ヘッダー行を取得
+                headers = [h.strip() for h in all_values[0]]
+                
+                # URL列のインデックスを探す（大文字小文字を区別しない）
+                url_col_idx = None
+                for idx, header in enumerate(headers):
+                    header_upper = header.upper()
+                    if header_upper == 'URL' or header_upper == 'URLS' or 'URL' in header_upper:
+                        url_col_idx = idx
+                        break
+                
+                if url_col_idx is None:
+                    # URL列が見つからない場合、3列目（インデックス2）を試す
+                    # 構造: 番号、店舗名、URL の場合
+                    if len(headers) >= 3:
+                        url_col_idx = 2  # 3列目（0-indexedなので2）
+                        print(f"ℹ️  URL列が見つからないため、3列目（インデックス{url_col_idx}）を使用します")
+                    else:
+                        # それでも見つからない場合、tabelog.comを含む列を探す
+                        for row_idx, row in enumerate(all_values[1:6]):  # 最初の5行をチェック
+                            for col_idx, cell in enumerate(row):
+                                if 'tabelog.com' in cell:
+                                    url_col_idx = col_idx
+                                    print(f"ℹ️  データからURL列を検出: 列{col_idx + 1}")
+                                    break
+                            if url_col_idx is not None:
+                                break
+                
+                if url_col_idx is None:
+                    print("❌ GoogleスプレッドシートでURL列が見つかりません")
+                    print(f"   見つかった列: {headers}")
+                    return []
+                
+                # データ行からURLを抽出（ヘッダー行を除く）
                 urls = []
-                for record in records:
-                    url = record.get('URL', '').strip()
-                    if url:
-                        urls.append(url)
+                for row_idx, row in enumerate(all_values[1:], start=2):  # ヘッダー行をスキップ、行番号は2から
+                    if len(row) > url_col_idx:
+                        url = row[url_col_idx].strip()
+                        # 食べログのURLかチェック
+                        if url and 'tabelog.com' in url and url.startswith('http'):
+                            urls.append(url)
+                        elif url and url.startswith('http'):
+                            # tabelog.comが含まれていない場合も警告
+                            print(f"⚠️  行{row_idx}: tabelog.comが含まれていないURLをスキップ: {url[:50]}...")
+                
+                if urls:
+                    print(f"✅ Googleスプレッドシートから{len(urls)}件のURLを読み込みました（列: {headers[url_col_idx]}）")
+                else:
+                    print("⚠️  GoogleスプレッドシートからURLが見つかりませんでした")
                 return urls
         except Exception as e:
-            print(f"Googleスプレッドシートからの読み込みエラー: {e}")
+            print(f"❌ Googleスプレッドシートからの読み込みエラー: {e}")
+            import traceback
+            traceback.print_exc()
             # エラーが発生した場合はローカルファイルにフォールバック
     
     # ローカルJSONファイルから読み込み（フォールバック）
@@ -110,7 +161,10 @@ def load_urls():
         try:
             with open(URLS_FILE, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-                return data.get('urls', [])
+                urls = data.get('urls', [])
+                if urls:
+                    print(f"✅ ローカルファイルから{len(urls)}件のURLを読み込みました")
+                return urls
         except Exception as e:
             print(f"URLリストの読み込みエラー: {e}")
             return []
