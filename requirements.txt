@@ -1,0 +1,29 @@
+# Streamlit Cloud用 requirements.txt
+# 食べログ掲載ステータスチェッカー
+
+# Webアプリケーションフレームワーク
+streamlit>=1.28.0
+
+# HTTPリクエスト
+requests>=2.31.0
+
+# HTMLパース
+beautifulsoup4>=4.12.0
+lxml>=4.9.0
+
+# データ処理
+pandas>=2.0.0
+
+# Googleスプレッドシート連携
+gspread>=5.12.0
+google-auth>=2.23.0
+
+# 注意: 以下の標準ライブラリは追加不要です
+# - json
+# - os
+# - time
+# - datetime
+# - smtplib
+# - email.mime.text
+# - email.mime.multipart
+# - urllib.parse

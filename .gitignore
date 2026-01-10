@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Streamlit
+# .streamlit/config.toml はコミットに含める（Streamlit Cloud用）
+.streamlit/secrets.toml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# その他
+*.log
+*.csv
+
+# プロジェクト固有
+urls.json
+results/
+logs/
+notification_config.json
+
+# テストファイル
+test_line_messaging.py
+
+# Googleサービスアカウントキー（機密情報）
+*-*.json
+!package.json
