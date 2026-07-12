@@ -25,11 +25,36 @@ HEADERS = {
 URLS_FILE = 'urls.json'
 RESULTS_DIR = 'results'
 
-# Googleスプレッドシート設定（Streamlit Secretsから取得）
+def _get_google_sheets_config_from_env():
+    """環境変数からGoogleスプレッドシート設定を取得（GitHub Actions等）"""
+    spreadsheet_id = os.environ.get('GOOGLE_SHEETS_SPREADSHEET_ID', '').strip()
+    if not spreadsheet_id:
+        return None
+
+    creds_json = os.environ.get('GOOGLE_SHEETS_CREDENTIALS_JSON', '').strip()
+    if not creds_json:
+        print("⚠️  GOOGLE_SHEETS_SPREADSHEET_ID は設定されていますが、GOOGLE_SHEETS_CREDENTIALS_JSON がありません")
+        return None
+
+    try:
+        credentials = json.loads(creds_json)
+    except json.JSONDecodeError as e:
+        print(f"⚠️  GOOGLE_SHEETS_CREDENTIALS_JSON の解析エラー: {e}")
+        return None
+
+    return {
+        'spreadsheet_id': spreadsheet_id,
+        'worksheet_name': os.environ.get('GOOGLE_SHEETS_WORKSHEET_NAME', 'Sheet1').strip() or 'Sheet1',
+        'credentials': credentials,
+    }
+
+
+# Googleスプレッドシート設定（Streamlit Secrets / 環境変数から取得）
 def get_google_sheets_config():
     """
-    Streamlit SecretsからGoogleスプレッドシートの設定を取得
-    
+    Googleスプレッドシートの設定を取得
+    優先順位: Streamlit Secrets → 環境変数
+
     Returns:
         dict: 設定情報（設定がない場合はNone）
     """
@@ -38,11 +63,9 @@ def get_google_sheets_config():
         if hasattr(st, 'secrets'):
             if 'google_sheets' in st.secrets:
                 config = st.secrets['google_sheets']
-                # 必須項目のチェック
                 if 'spreadsheet_id' in config and config['spreadsheet_id']:
                     return config
-                else:
-                    print("⚠️  Googleスプレッドシート設定にspreadsheet_idがありません")
+                print("⚠️  Googleスプレッドシート設定にspreadsheet_idがありません")
             else:
                 print("⚠️  Streamlit Secretsに'google_sheets'セクションがありません")
         else:
@@ -51,7 +74,11 @@ def get_google_sheets_config():
         print(f"⚠️  Googleスプレッドシート設定の取得エラー: {e}")
         import traceback
         traceback.print_exc()
-    return None
+
+    env_config = _get_google_sheets_config_from_env()
+    if env_config:
+        print("✅ 環境変数からGoogleスプレッドシート設定を読み込みました")
+    return env_config
 
 def get_google_sheets_client():
     """

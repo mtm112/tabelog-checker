@@ -2,19 +2,44 @@
 通知機能モジュール
 LINE Messaging API、メール通知をサポート
 """
+import os
 import requests
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 # ============================================
-# 通知設定（Streamlit Secretsから読み込み）
+# 通知設定（Streamlit Secrets / 環境変数から読み込み）
 # ============================================
+
+def _parse_bool(value, default=False):
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    return str(value).strip().lower() in ('true', '1', 'yes', 'on')
+
+
+def _get_notification_config_from_env():
+    """環境変数から通知設定を取得（GitHub Actions等）"""
+    return {
+        'LINE_MESSAGING_ENABLED': _parse_bool(os.environ.get('LINE_MESSAGING_ENABLED')),
+        'LINE_MESSAGING_CHANNEL_ACCESS_TOKEN': os.environ.get('LINE_MESSAGING_CHANNEL_ACCESS_TOKEN', ''),
+        'LINE_MESSAGING_USER_ID': os.environ.get('LINE_MESSAGING_USER_ID', ''),
+        'EMAIL_ENABLED': _parse_bool(os.environ.get('EMAIL_ENABLED')),
+        'EMAIL_TO': os.environ.get('EMAIL_TO', ''),
+        'SMTP_SERVER': os.environ.get('SMTP_SERVER', 'smtp.gmail.com'),
+        'SMTP_PORT': int(os.environ.get('SMTP_PORT', '587') or 587),
+        'SMTP_USER': os.environ.get('SMTP_USER', ''),
+        'SMTP_PASSWORD': os.environ.get('SMTP_PASSWORD', ''),
+    }
+
 
 def get_notification_config():
     """
-    Streamlit Secretsから通知設定を取得
-    
+    通知設定を取得
+    優先順位: Streamlit Secrets → 環境変数
+
     Returns:
         dict: 通知設定
     """
@@ -22,8 +47,12 @@ def get_notification_config():
         import streamlit as st
         if hasattr(st, 'secrets') and 'notifier' in st.secrets:
             return st.secrets['notifier']
-    except:
+    except Exception:
         pass
+
+    env_config = _get_notification_config_from_env()
+    if env_config.get('LINE_MESSAGING_CHANNEL_ACCESS_TOKEN') or env_config.get('EMAIL_TO'):
+        return env_config
     return {}
 
 def get_line_messaging_config():
