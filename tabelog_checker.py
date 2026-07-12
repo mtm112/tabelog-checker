@@ -25,6 +25,26 @@ HEADERS = {
 URLS_FILE = 'urls.json'
 RESULTS_DIR = 'results'
 
+# スプレッドシートのステータス列（D列 = 0-indexed で 3）
+STATUS_COL_IDX = 3
+SKIP_STATUS_KEYWORDS = ('解約', '休止')
+
+
+def _get_status_col_idx(headers):
+    """ヘッダー行からステータス列のインデックスを取得（未検出時はD列）"""
+    for idx, header in enumerate(headers):
+        header_normalized = header.strip()
+        if 'ステータス' in header_normalized or header_normalized.upper() == 'STATUS':
+            return idx
+    return STATUS_COL_IDX
+
+
+def _should_skip_row_by_status(status_text):
+    """ステータスに解約・休止が含まれる場合はチェック対象外"""
+    if not status_text:
+        return False
+    return any(keyword in status_text for keyword in SKIP_STATUS_KEYWORDS)
+
 def _get_google_sheets_config_from_env():
     """環境変数からGoogleスプレッドシート設定を取得（GitHub Actions等）"""
     spreadsheet_id = os.environ.get('GOOGLE_SHEETS_SPREADSHEET_ID', '').strip()
@@ -244,10 +264,22 @@ def load_urls(force_refresh=False):
                         print(f"   見つかった列: {headers}")
                         print(f"   列数: {len(headers)}")
                         return []
-                    
+
+                    status_col_idx = _get_status_col_idx(headers)
+                    status_header = headers[status_col_idx] if status_col_idx < len(headers) else 'N/A'
+                    print(f"ℹ️  ステータス列: 列{status_col_idx + 1} ({status_header})")
+                    print(f"ℹ️  スキップ条件: ステータスに「{'」「'.join(SKIP_STATUS_KEYWORDS)}」を含む行")
+
                     # データ行からURLを抽出（ヘッダー行を除く）
                     urls = []
+                    skipped_count = 0
                     for row_idx, row in enumerate(all_values[1:], start=2):  # ヘッダー行をスキップ、行番号は2から
+                        status_text = row[status_col_idx].strip() if len(row) > status_col_idx else ''
+                        if _should_skip_row_by_status(status_text):
+                            skipped_count += 1
+                            print(f"  ⏭️  行{row_idx}: ステータス '{status_text}' のためスキップ")
+                            continue
+
                         if len(row) > url_col_idx:
                             url = row[url_col_idx].strip()
                             # 食べログのURLかチェック
@@ -262,6 +294,8 @@ def load_urls(force_refresh=False):
                     
                     if urls:
                         print(f"✅ Googleスプレッドシートから{len(urls)}件のURLを読み込みました（列: {headers[url_col_idx] if url_col_idx < len(headers) else 'N/A'}）")
+                        if skipped_count:
+                            print(f"ℹ️  ステータスにより{skipped_count}件をスキップしました")
                     else:
                         print("⚠️  GoogleスプレッドシートからURLが見つかりませんでした")
                         print(f"   データ行数: {len(all_values) - 1}行（ヘッダー除く）")
