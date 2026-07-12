@@ -15,9 +15,10 @@ def main():
     today = datetime.now()
     day = today.day
     
-    if day < 3 or day > 10:
-        print(f"今日は{day}日です。スケジュール実行は毎月3-10日の間のみです。")
-        sys.exit(0)
+    # テスト用: 日付制限を一時無効化（本番運用時は if ブロックのコメントを外す）
+    # if day < 3 or day > 10:
+    #     print(f"今日は{day}日です。スケジュール実行は毎月3-10日の間のみです。")
+    #     sys.exit(0)
     
     print(f"スケジュールチェック実行: {today.strftime('%Y-%m-%d %H:%M:%S')}")
     print("-" * 50)
