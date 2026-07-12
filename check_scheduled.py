@@ -1,24 +1,25 @@
 #!/usr/bin/env python3
 """
 スケジュール実行用のバッチスクリプト
-毎月3-10日の間、登録されているURLを自動チェックします。
+毎月3-15日の間、登録されているURLを自動チェックします。
 """
 import sys
-import os
 from datetime import datetime
 from tabelog_checker import load_urls, check_all_urls, save_results_to_csv, ensure_results_dir
 from notifier import notify_free_restaurants
 
+SCHEDULE_DAY_START = 3
+SCHEDULE_DAY_END = 15
+
 def main():
     """メイン処理"""
-    # 実行日を確認（毎月3-10日の間のみ実行）
+    # 実行日を確認（毎月3-15日の間のみ実行）
     today = datetime.now()
     day = today.day
-    
-    # テスト用: 日付制限を一時無効化（本番運用時は if ブロックのコメントを外す）
-    # if day < 3 or day > 10:
-    #     print(f"今日は{day}日です。スケジュール実行は毎月3-10日の間のみです。")
-    #     sys.exit(0)
+
+    if day < SCHEDULE_DAY_START or day > SCHEDULE_DAY_END:
+        print(f"今日は{day}日です。スケジュール実行は毎月{SCHEDULE_DAY_START}-{SCHEDULE_DAY_END}日の間のみです。")
+        sys.exit(0)
     
     print(f"スケジュールチェック実行: {today.strftime('%Y-%m-%d %H:%M:%S')}")
     print("-" * 50)
@@ -58,15 +59,15 @@ def main():
         print(f"   結果ファイル: {saved_file}")
         print("-" * 50)
         
-        # 無料/要確認がある場合は警告と通知
+        # 無料/要確認がある場合は警告表示
         if free > 0:
             print("⚠️  無料/要確認の店舗があります！")
             for result in results:
                 if result['status'] == '無料/要確認':
                     print(f"   - {result['shop_name']}: {result['url']}")
-            
-            # 通知を送信
-            notify_free_restaurants(results)
+
+        # 通知を送信（無料/要確認あり、または毎月3日の定期報告）
+        notify_free_restaurants(results, check_date=today)
         
     except Exception as e:
         print(f"❌ エラーが発生しました: {e}")

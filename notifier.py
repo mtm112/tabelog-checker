@@ -173,45 +173,61 @@ def send_email(subject, body, to_email=None, smtp_config=None):
         print(f"メール送信エラー: {e}")
         return False
 
-def notify_free_restaurants(results):
+def notify_free_restaurants(results, check_date=None):
     """
-    無料/要確認の店舗がある場合に通知を送信
-    
+    チェック結果に応じて通知を送信
+
+    - 無料/要確認の店舗がある場合: 警告通知（LINE / メール）
+    - 無料/要確認が0件かつ毎月3日: 定期報告をLINEで送信
+
     Args:
         results: チェック結果のリスト
+        check_date: 実行日（datetime）。未指定時は現在日時
     """
+    from datetime import datetime
+
+    if check_date is None:
+        check_date = datetime.now()
+
     free_restaurants = [r for r in results if r['status'] == '無料/要確認']
-    
-    if not free_restaurants:
-        return
-    
-    # 通知設定を取得
+
     line_config = get_line_messaging_config()
     email_config = get_email_config()
-    
-    # 通知を送信するかチェック
-    if not line_config.get('enabled', False) and not email_config.get('enabled', False):
+
+    if free_restaurants:
+        if not line_config.get('enabled', False) and not email_config.get('enabled', False):
+            return
+
+        message_lines = ["⚠️ 無料/要確認の店舗が見つかりました\n"]
+        message_lines.append("以下の店舗が無料プランに変更されています：\n")
+        for r in free_restaurants:
+            shop_name = r['shop_name'] if r['shop_name'] else '店舗名不明'
+            message_lines.append(f"・{shop_name}")
+            message_lines.append(f"  {r['url']}\n")
+
+        message = '\n'.join(message_lines)
+
+        if line_config.get('enabled', False):
+            send_line_messaging_api(
+                message,
+                user_id=line_config.get('user_id'),
+                channel_access_token=line_config.get('channel_access_token')
+            )
+
+        if email_config.get('enabled', False) and email_config.get('to'):
+            subject = f"【食べログチェッカー】無料/要確認の店舗が{len(free_restaurants)}件見つかりました"
+            send_email(subject, message, email_config.get('to'), email_config.get('smtp'))
         return
-    
-    # メッセージを作成
-    message_lines = ["⚠️ 無料/要確認の店舗が見つかりました\n"]
-    message_lines.append("以下の店舗が無料プランに変更されています：\n")
-    for r in free_restaurants:
-        shop_name = r['shop_name'] if r['shop_name'] else '店舗名不明'
-        message_lines.append(f"・{shop_name}")
-        message_lines.append(f"  {r['url']}\n")
-    
-    message = '\n'.join(message_lines)
-    
-    # LINE Messaging APIで通知
-    if line_config.get('enabled', False):
+
+    if check_date.day == 3 and line_config.get('enabled', False):
+        total = len(results)
+        message = (
+            "【定期報告】全店舗が正常（有料プラン）であることを確認しました\n\n"
+            f"チェック日: {check_date.strftime('%Y-%m-%d')}\n"
+            f"対象店舗数: {total}件"
+        )
         send_line_messaging_api(
             message,
             user_id=line_config.get('user_id'),
             channel_access_token=line_config.get('channel_access_token')
         )
-    
-    # メールで通知
-    if email_config.get('enabled', False) and email_config.get('to'):
-        subject = f"【食べログチェッカー】無料/要確認の店舗が{len(free_restaurants)}件見つかりました"
-        send_email(subject, message, email_config.get('to'), email_config.get('smtp'))
